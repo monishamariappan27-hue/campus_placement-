@@ -1,0 +1,1 @@
+print("Campus Placement Analytics Platform")
