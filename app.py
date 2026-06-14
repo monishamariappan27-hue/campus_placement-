@@ -15,14 +15,29 @@ os.makedirs(DATA, exist_ok=True)
 students_path   = os.path.join(DATA, "students.csv")
 scores_path     = os.path.join(DATA, "scores.csv")
 
-if not os.path.exists(students_path):
-    pd.DataFrame(columns=["student_id","name","email","department","year","password","role"]).to_csv(students_path, index=False)
-if not os.path.exists(scores_path):
-    pd.DataFrame(columns=["student_id","game","score","total","difficulty","time","date"]).to_csv(scores_path, index=False)
+STUDENT_COLUMNS = ["student_id","name","email","department","year","password","role"]
+SCORE_COLUMNS   = ["student_id","game","score","total","difficulty","time","date"]
+
+def ensure_csv(path, columns):
+    """Create the CSV with headers if it doesn't exist or is empty/corrupt."""
+    if not os.path.exists(path) or os.path.getsize(path) == 0:
+        pd.DataFrame(columns=columns).to_csv(path, index=False)
+
+def safe_read_csv(path, columns):
+    try:
+        df = pd.read_csv(path)
+        if df.columns.empty:
+            return pd.DataFrame(columns=columns)
+        return df
+    except pd.errors.EmptyDataError:
+        return pd.DataFrame(columns=columns)
+
+ensure_csv(students_path, STUDENT_COLUMNS)
+ensure_csv(scores_path, SCORE_COLUMNS)
 
 # ── Read CSVs fresh on every page load ────────────────────────────
-students   = pd.read_csv(students_path)
-scores     = pd.read_csv(scores_path)
+students   = safe_read_csv(students_path, STUDENT_COLUMNS)
+scores     = safe_read_csv(scores_path, SCORE_COLUMNS)
 
 # Ensure backward-compatible columns exist
 if "role" not in students.columns:
@@ -134,7 +149,7 @@ elif page == "Login":
             sid = st.text_input("Student ID", key="login_sid")
             pwd = st.text_input("Password", type="password", key="login_pwd")
             if st.button("Login", key="student_login_btn"):
-                students_fresh = pd.read_csv(students_path)
+                students_fresh = safe_read_csv(students_path, STUDENT_COLUMNS)
                 u = students_fresh[
                     (students_fresh["student_id"].astype(str).str.strip() == str(sid).strip()) &
                     (students_fresh["password"].astype(str).str.strip() == str(pwd).strip())
@@ -173,7 +188,7 @@ elif page == "Games":
             "time": time_val,
             "date": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         }])
-        existing = pd.read_csv(scores_path)
+        existing = safe_read_csv(scores_path, SCORE_COLUMNS)
         pd.concat([existing, row], ignore_index=True).to_csv(scores_path, index=False)
 
     # ════════════════════ APTITUDE QUESTION SETS ════════════════════
