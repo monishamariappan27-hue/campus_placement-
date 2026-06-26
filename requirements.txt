@@ -1,4 +1,9 @@
-numpy
-pandas
-matplotlib
 streamlit
+pandas
+numpy
+matplotlib
+reportlab
+openpyxl
+joblib
+scikit-learn
+Pillow
